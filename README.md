@@ -6,6 +6,7 @@ A tool for calculating grades from Canvas peer reviews.  For a Canvas peer-grade
 * Install PHP (7.3 or higher)
 * Install Composer (https://getcomposer.org)
 * `cd` into the 'web' folder in this repo.
+* `cp .env.example .env` to create a new env file from the provided example.
 * `composer install` (to install PHP dependencies that aren't included here)
 * `php artisan key:generate` (to set your app's encryption key)
 * Edit the '.env' file with information about your local environment
