@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\CanvasOAuthController;
+use App\Http\Controllers\PeerGradingController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -13,14 +15,17 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/oauth_redirect', 'CanvasOAuthController@getRedirect');
-Route::get('/oauth_redirect_complete', 'CanvasOAuthController@getRedirectComplete');
-Route::get('/oauth_logout', 'CanvasOAuthController@getLogout');
+Route::get('/oauth_redirect', [CanvasOAuthController::class, 'getRedirect']);
+Route::get('/oauth_redirect_complete', [CanvasOAuthController::class, 'getRedirectComplete']);
+Route::get('/oauth_logout', [CanvasOAuthController::class, 'getLogout']);
 
-Route::get('/home/{course_id}', 'PeerReviewController@index')->middleware('oauth')->name('home');
-Route::get('/v1/scores/{course_id}/{assignment_id}', 'PeerReviewController@loadCourseInfo')->middleware('oauth');
-Route::get('/v1/export/scores/{course_id}/{assignment_id}', 'PeerReviewController@exportScores')->middleware('oauth');
-Route::get('/v1/export1/scores/{course_id}/{assignment_id}', 'PeerReviewController@gradebookExportScores')->middleware('oauth');
-Route::post('/v1/import/scores', 'PeerReviewController@import_grades_to_gradebook')->middleware('oauth');
+Route::middleware(['oauth'])->group(function() {
+    Route::get('/', [PeerGradingController::class, 'index']);
+    Route::get('/course/{course_id}', [PeerGradingController::class, 'courseHome']);
+    Route::get('/course/{course_id}/assignment/{assignment_id}', [PeerGradingController::class, 'assignmentHome']);
+    Route::get('/course/{course_id}/assignment/{assignment_id}/export_gradebook', [PeerGradingController::class, 'gradebookExportScores']);
+    Route::get('/course/{course_id}/assignment/{assignment_id}/export_comments', [PeerGradingController::class, 'exportScores']);
+    Route::post('/v1/import/scores', [PeerGradingController::class, 'import_grades_to_gradebook']);
+});
 
-Route::post('/lti_launch', 'PeerReviewController@ltiLaunch');
+Route::post('/lti_launch', [PeerGradingController::class, 'ltiLaunch']);

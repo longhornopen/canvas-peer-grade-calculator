@@ -7,7 +7,7 @@ use App;
 use App\CanvasOAuthProviderFactory;
 use Illuminate\Support\Facades\Session;
 
-class CanvasOauthController extends Controller
+class CanvasOAuthController extends Controller
 {
 
     public function getRedirect(Request $request)
@@ -23,6 +23,11 @@ class CanvasOauthController extends Controller
     {
         $provider = CanvasOAuthProviderFactory::getProvider();
 
+        if ($request->has("error")) {
+            $msg = "ERROR: Canvas reports '" . $request->get('error') . "'.<br>".$request->get('error_description').".<br><br>Please try again.";
+            return response($msg, 500);
+        }
+
         /* check that the passed state matches the stored state to mitigate cross-site request forgery attacks */
         if (!$request->has('state') || (Session::has('oauth2_state') && $request->get('state') !== Session::get(
                     'oauth2_state'
@@ -32,10 +37,6 @@ class CanvasOauthController extends Controller
             }
 
             exit('Invalid state');
-        }
-
-        if ($request->has("error")) {
-            App::abort(500, "ERROR: Canvas reports '" . $request->get('error') . "'.  Please try again?");
         }
 
         if (!Session::has('oauth2_state')) {
@@ -55,7 +56,6 @@ class CanvasOauthController extends Controller
         Session::put("oauth2_access_token", $access_token);
         Session::put("oauth2_refresh_token", $access_token->getRefreshToken());
         $resourceOwner = $provider->getResourceOwner($access_token);
-        Session::put("oauth2_user_id", $resourceOwner->getId());
         $return_url = Session::get("oauth2_return_url");
         return redirect($return_url);
     }
@@ -65,7 +65,7 @@ class CanvasOauthController extends Controller
         Session::flush();
         $return_url = $request->get("return_url");
         if ($return_url === null) {
-            $return_url = "https://www.utexas.edu/";
+            $return_url = env('APP_URL');
         }
         return redirect($return_url);
     }

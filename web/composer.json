@@ -16,7 +16,7 @@
         "laravel/tinker": "^2.5",
         "league/csv": "^9.0",
         "league/oauth2-client": "~2.4",
-        "longhornopen/canvas-api": "1.0"
+        "longhornopen/canvas-api": "~1.0.1"
     },
     "require-dev": {
         "facade/ignition": "^2.5",

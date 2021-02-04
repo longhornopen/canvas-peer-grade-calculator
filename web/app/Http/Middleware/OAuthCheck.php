@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\CanvasOAuthProviderFactory;
+use App\Http\Controllers\CanvasOAuthController;
 use Closure;
 use Illuminate\Http\Request;
 
@@ -25,7 +27,7 @@ class OAuthCheck
         $access_token = $request->session()->get('oauth2_access_token');
 
         if ($access_token->hasExpired()) {
-            $provider = CanvasOAuthController::getProvider();
+            $provider = CanvasOAuthProviderFactory::getProvider();
             $new_access_token = $provider->getAccessToken('refresh_token', [
                 'refresh_token' => $refresh_token
             ]);

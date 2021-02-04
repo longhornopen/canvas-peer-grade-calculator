@@ -10,6 +10,24 @@ use SplTempFileObject;
 
 class PeerGradingController extends Controller
 {
+    public function index()
+    {
+        $canvasApi = $this->getCanvasApi();
+        $teacher_courses = $canvasApi->get('/users/self/courses?enrollment_type=teacher&enrollment_state=active?per_page=100');
+        $ta_courses = $canvasApi->get('/users/self/courses?enrollment_type=ta&enrollment_state=active?per_page=100');
+        $courses = array_merge($teacher_courses, $ta_courses);
+        usort($courses, function($c1, $c2) {
+            return strcasecmp($c2->created_at, $c1->created_at);
+        });
+        return view(
+            'index',
+            [
+                'courses' => $courses,
+                'skip_start_over_link' => true,
+            ]
+        );
+    }
+
     protected function getCanvasApi()
     {
         return new CanvasApiClient(env("CANVAS_URL"), Session::get("oauth2_access_token"));
@@ -24,7 +42,7 @@ class PeerGradingController extends Controller
     protected function getAssignments($course_id)
     {
         $canvasApi = $this->getCanvasApi();
-        $assignments = $canvasApi->get('/courses/' . $course_id . '/assignments');
+        $assignments = $canvasApi->get('/courses/' . $course_id . '/assignments?per_page=200');
         $valid_assignments = [];
         foreach ($assignments as $assignment) {
             if (!$assignment->published || !$assignment->peer_reviews) {
@@ -38,11 +56,11 @@ class PeerGradingController extends Controller
         return $valid_assignments;
     }
 
-    public function index($course_id)
+    public function courseHome($course_id)
     {
         $valid_assignments = $this->getAssignments($course_id);
         return view(
-            'peerreview::index',
+            'course_home',
             [
                 'canvas_url' => env('CANVAS_URL'),
                 'course_id' => $course_id,
@@ -65,17 +83,17 @@ class PeerGradingController extends Controller
             $table_data = $data['table_data'];
             $csv = Writer::createFromFileObject(new SplTempFileObject());
             $csv_header = ["Student Name", "Grader Name", "Grade Assigned", "Grade Average", "Submission Comments"];
-            if (count($table_data) != 0) {
+            if (count($table_data) !== 0) {
                 $num_criterias = count($table_data[0][4]);
                 foreach (range(1, $num_criterias) as $cid) {
-                    array_push($csv_header, "Comments for Criteria #" . $cid);
+                    $csv_header[] = "Comments for Criteria #" . $cid;
                 }
             }
             $csv->insertOne($csv_header);
             foreach ($table_data as $row_entry) {
                 $csv_row = [$row_entry[0], $row_entry[1], $row_entry[2], $row_entry[3], implode(", ", $row_entry[6])];
                 foreach ($row_entry[4] as $criteria_comment) {
-                    array_push($csv_row, $criteria_comment);
+                    $csv_row[] = $criteria_comment;
                 }
                 $csv->insertOne($csv_row);
             }
@@ -110,7 +128,7 @@ class PeerGradingController extends Controller
     /**
      * Retrieve scores for students in course
      */
-    public function loadCourseInfo($course_id, $assignment_id)
+    public function assignmentHome($course_id, $assignment_id)
     {
         /**
          * Call Canvas API to get data on peer review assignment scores
@@ -131,8 +149,8 @@ class PeerGradingController extends Controller
         foreach ($peer_reviews as $value) {
             $status = $value['workflow_state'];
             $id = $value['assessor_id'];
-            if ($status != "completed" and in_array($id, $student_list)) {
-                array_push($incomplete_students, $student_list[$id]['name']);
+            if ($status !== "completed" && in_array($id, $student_list)) {
+                $incomplete_students[] = $student_list[$id]['name'];
             }
         }
 
@@ -147,7 +165,7 @@ class PeerGradingController extends Controller
         $class_average = $this->get_class_average($table_data);
         $valid_assignments = $this->getAssignments($course_id);
         return view(
-            'peerreview::main',
+            'assignment',
             [
                 'assignments' => $valid_assignments,
                 'assignment_id' => $assignment_id,
@@ -167,7 +185,7 @@ class PeerGradingController extends Controller
      */
     public function get_assignment_info($canvasApi, $course_id, $assignment_id)
     {
-        $data = $canvasApi->get('/courses/' . $course_id . '/assignments/' . $assignment_id);
+        $data = $canvasApi->get('/courses/' . $course_id . '/assignments/' . $assignment_id . '?per_page=200');
         $rubric_id = null;
         if (isset($data->rubric_settings)) {
             $rubric_id = $data->rubric_settings->id;
@@ -187,11 +205,9 @@ class PeerGradingController extends Controller
                 continue;
             }
             $canvas_id = $student->id;
-            $student_name = $student->name;
-            $student_eid = $student->login_id;
             $student_list[$canvas_id] = [];
-            $student_list[$canvas_id]["name"] = $student_name;
-            $student_list[$canvas_id]["eid"] = $student_eid;
+            $student_list[$canvas_id]["name"] = $student->name;
+            $student_list[$canvas_id]["login_id"] = $student->login_id;
         }
         return $student_list;
     }
@@ -218,7 +234,7 @@ class PeerGradingController extends Controller
                 if (!array_key_exists($author_id, $submission_comments[$submission->user_id])) {
                     $submission_comments[$submission->user_id][$author_id] = [];
                 }
-                array_push($submission_comments[$submission->user_id][$author_id], $submission_comment->comment);
+                $submission_comments[$submission->user_id][$author_id][] = $submission_comment->comment;
             }
         }
 
@@ -240,20 +256,6 @@ class PeerGradingController extends Controller
             } catch (\Exception $e) {
                 continue;
             }
-            /* Will need for submission comments later */
-            // $submission_comments = $submission->submission_comments;
-            // if (array_key_exists("rubric_assessment", $submission)) {
-            //     $rubric_comments = $submission->rubric_assessment;
-            //     foreach($rubric_comments as $rubric_comment) {
-            //         array_push($rcomments, $rubric_comment->comments);
-            //     }
-            // }
-            // foreach($submission_comments as $submission_comment) {
-            //     $comment = $submission_comment->comment;
-            //     array_push($comments, $comment);
-            // }
-            // $peer_reviews[$id]['submission_comments'] = $comments;
-            // $peer_reviews[$id]['rubric_comments'] = $rcomments;
         }
         return $peer_reviews;
     }
@@ -265,7 +267,7 @@ class PeerGradingController extends Controller
         );
 
         $peer_review_scores = [];
-        if ($data != null) {
+        if ($data !== null) {
             $assessments = $data->assessments;
             $peer_review_scores['score'] = [];
             foreach ($assessments as $assessment) {
@@ -278,7 +280,7 @@ class PeerGradingController extends Controller
                 $comment_data = $assessment->data;
                 foreach ($comment_data as $comment) {
                     if ($comment->comments != "") {
-                        array_push($comments, $comment->comments);
+                        $comments[] = $comment->comments;
                     }
                 }
                 $peer_review_scores['score'][$key] = $score;
@@ -302,9 +304,9 @@ class PeerGradingController extends Controller
         foreach ($peer_reviews as $key => $values) {
             if (array_key_exists($values["user_id"], $student_list) &&
                 array_key_exists($values["assessor_id"], $student_list)) {
-                $student_eid = $student_list[$values["user_id"]]['eid'];
-                $assessor_eid = $student_list[$values["assessor_id"]]['eid'];
-                if ($student_eid != '' && $assessor_eid != '') {
+                $student_login_id = $student_list[$values["user_id"]]['login_id'];
+                $assessor_login_id = $student_list[$values["assessor_id"]]['login_id'];
+                if ($student_login_id !== '' && $assessor_login_id !== '') {
                     $key = $values["asset_id"] . $values["assessor_id"];
                     $score = null;
                     if (array_key_exists($key, $peer_review_scores['score'])) {
@@ -314,12 +316,12 @@ class PeerGradingController extends Controller
 
                     if ($score !== null) {
                         /* Store average */
-                        if (array_key_exists($student_eid, $averages)) {
-                            $averages[$student_eid] += $score;
-                            $counts[$student_eid] += 1;
+                        if (array_key_exists($student_login_id, $averages)) {
+                            $averages[$student_login_id] += $score;
+                            $counts[$student_login_id] += 1;
                         } else {
-                            $averages[$student_eid] = $score;
-                            $counts[$student_eid] = 1;
+                            $averages[$student_login_id] = $score;
+                            $counts[$student_login_id] = 1;
                         }
                     }
                 }
@@ -329,14 +331,14 @@ class PeerGradingController extends Controller
         foreach ($peer_reviews as $key => $values) {
             if (array_key_exists($values["user_id"], $student_list) &&
                 array_key_exists($values["assessor_id"], $student_list)) {
-                $student_eid = $student_list[$values["user_id"]]['eid'];
+                $student_login_id = $student_list[$values["user_id"]]['login_id'];
                 $student_name = $student_list[$values["user_id"]]['name'];
-                $assessor_eid = $student_list[$values["assessor_id"]]['eid'];
+                $assessor_login_id = $student_list[$values["assessor_id"]]['login_id'];
                 $assessor_name = $student_list[$values["assessor_id"]]['name'];
 
                 $submission_comments = $values["submission_comments"];
 
-                if ($student_eid != '' && $assessor_eid != '') {
+                if ($student_login_id != '' && $assessor_login_id != '') {
                     $submission_comment_list = [];
                     if (array_key_exists($values["user_id"], $submission_comments) &&
                         array_key_exists($values["assessor_id"], $submission_comments[$values["user_id"]])) {
@@ -348,8 +350,8 @@ class PeerGradingController extends Controller
                     $score = null;
                     /* Retrieve average */
                     $average = null;
-                    if (array_key_exists($student_eid, $averages)) {
-                        $average = $averages[$student_eid] / $counts[$student_eid];
+                    if (array_key_exists($student_login_id, $averages)) {
+                        $average = $averages[$student_login_id] / $counts[$student_login_id];
                     }
                     $comments = [];
                     if (array_key_exists($key, $peer_review_scores['score'])) {
@@ -370,7 +372,7 @@ class PeerGradingController extends Controller
                         $values["user_id"],
                         $submission_comment_list
                     ];
-                    array_push($table_data, $curr_data);
+                    $table_data[] = $curr_data;
                 }
             }
         }
@@ -385,7 +387,7 @@ class PeerGradingController extends Controller
             $score = $data[2];
             if ($score !== null) {
                 $class_average += $score;
-                $count += 1;
+                ++$count;
             }
         }
         if ($count === 0) {
@@ -412,10 +414,10 @@ class PeerGradingController extends Controller
             $assessor_name = $data[2];
             $grade_assigned = $data[3];
             $grade_average = $data[4];
-            array_push($complete_names, $student_name);
+            $complete_names[] = $student_name;
 
             if (!array_key_exists($student_id, $gradebook_data) && $grade_assigned != '-') {
-                array_push($graded_names, $student_name);
+                $graded_names[] = $student_name;
                 $grade_average = $grade_average - $points_off_incomplete;
                 $gradebook_data[$student_id] = $grade_average;
             }
@@ -434,12 +436,12 @@ class PeerGradingController extends Controller
         $final_names = implode(", ", $names);
 
         //Message changes if there are incomplete peer reviews.
-        if (count($input_data) != count($gradebook_data)) {
+        if (count($input_data) !== count($gradebook_data)) {
             $response = [
                 'status' => 'success',
                 'msg' => 'Grades posted successfully. However, the following students do not have grades: ' . $final_names . "!"
             ];
-        } elseif (count($input_data) != count($gradebook_data)) {
+        } elseif (count($input_data) !== count($gradebook_data)) {
             $response = [
                 'status' => 'success',
                 'msg' => 'Grades posted successfully.'
