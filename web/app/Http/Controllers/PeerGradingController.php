@@ -206,7 +206,7 @@ class PeerGradingController extends Controller
             }
             $canvas_id = $student->id;
             $student_list[$canvas_id] = [];
-            $student_list[$canvas_id]["name"] = $student->name;
+            $student_list[$canvas_id]["name"] = $student->sortable_name;
             $student_list[$canvas_id]["login_id"] = $student->login_id;
         }
         return $student_list;
