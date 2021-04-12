@@ -124,7 +124,7 @@ class PeerGradingController extends Controller
             $csv->output('report-' . $assignment_id . '.csv');
         }
     }
-
+    
     /**
      * Retrieve scores for students in course
      */
@@ -140,44 +140,69 @@ class PeerGradingController extends Controller
         $rubric_id = $info['rubric_id'];
         $student_list = $this->get_student_list($canvasApi, $course_id);
         $peer_reviews = $this->get_peer_reviews($canvasApi, $course_id, $assignment_id);
-        $table_data = null;
         $peer_review_scores = $this->get_peer_review_scores_from_rubric($canvasApi, $course_id, $rubric_id);
-        $data = $this->generate_table_data($student_list, $peer_reviews, $peer_review_scores);
-
-        $incomplete_students = [];
-
-        foreach ($peer_reviews as $value) {
-            $status = $value['workflow_state'];
-            $id = $value['assessor_id'];
-            if ($status !== "completed" && in_array($id, $student_list)) {
-                $incomplete_students[] = $student_list[$id]['name'];
-            }
-        }
-
-        $message = null;
-        if (count($incomplete_students) > 0) {
-            $names = implode(", ", $incomplete_students);
-            $message = "The following students have not completed their peer review: " . $names . "!";
-        }
-
-        $table_data = $data['table_data'];
-        $total = $data['total'];
-        $class_average = $this->get_class_average($table_data);
         $valid_assignments = $this->getAssignments($course_id);
-        return view(
-            'assignment',
-            [
-                'assignments' => $valid_assignments,
-                'assignment_id' => $assignment_id,
-                'assignment_name' => $assignment_name,
-                'class_average' => $class_average,
-                'total' => $total,
-                'table_data' => $table_data,
-                'course_id' => $course_id,
-                'canvas_url' => env('CANVAS_URL'),
-                'message' => $message
-            ]
-        );
+
+        // peer reviews has not been completed
+        if (count($peer_review_scores["score"]) == 0) {
+            
+            return view(
+                'assignment',
+                [
+                    'peer_review_completed' => false,
+                    'assignments' => $valid_assignments,
+                    'assignment_id' => $assignment_id,
+                    'assignment_name' => $assignment_name,
+                    'class_average' => NULL,
+                    'total' => NULL,
+                    'table_data' => NULL,
+                    'course_id' => $course_id,
+                    'canvas_url' => env('CANVAS_URL'),
+                    'message' => ''
+                ]
+            );
+        } else {
+            $table_data = null;
+            $data = $this->generate_table_data($student_list, $peer_reviews, $peer_review_scores);
+
+            $incomplete_students = [];
+
+            foreach ($peer_reviews as $value) {
+                $status = $value['workflow_state'];
+                $id = $value['assessor_id'];
+                if ($status !== "completed" && in_array($id, $student_list)) {
+                    $incomplete_students[] = $student_list[$id]['name'];
+                }
+            }
+
+            $message = null;
+            if (count($incomplete_students) > 0) {
+                $names = implode(", ", $incomplete_students);
+                $message = "The following students have not completed their peer review: " . $names . "!";
+            }
+
+            $table_data = $data['table_data'];
+            $total = $data['total'];
+            $class_average = $this->get_class_average($table_data);
+            
+            return view(
+                'assignment',
+                [
+                    'peer_review_completed' => true,
+                    'assignments' => $valid_assignments,
+                    'assignment_id' => $assignment_id,
+                    'assignment_name' => $assignment_name,
+                    'class_average' => $class_average,
+                    'total' => $total,
+                    'table_data' => $table_data,
+                    'course_id' => $course_id,
+                    'canvas_url' => env('CANVAS_URL'),
+                    'message' => $message
+                ]
+            );
+        }
+
+        
     }
 
     /**
@@ -259,6 +284,7 @@ class PeerGradingController extends Controller
         }
         return $peer_reviews;
     }
+    
 
     public function get_peer_review_scores_from_rubric($canvasApi, $course_id, $rubric_id)
     {

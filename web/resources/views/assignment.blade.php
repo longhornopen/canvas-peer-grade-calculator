@@ -136,11 +136,39 @@
         display: none;
         text-align: center;
     }
+    
+    #assignments-dropdown {
+        display: flex;
+        align-items: center;
+    }
+    #title {
+        margin-right: 10px;
+    }
+    #not-completed-view {
+        padding: 30px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
 
 </style>
 @endsection
 
 @section('content')
+    <div id="assignments-dropdown">
+        <div id="title">Select an Assignment</div>
+        <div class="btn-group">
+            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            {{$assignment_name}}  <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu">
+                @foreach($assignments as $id=>$assignment)
+                <li id="{{$id}}" data-rubric_status="{{$assignment['has_rubric']}}" onclick="switch_assignment({{$id}})"><a>{{$assignment['name']}}</a></li>
+                @endforeach
+            </ul>
+        </div>
+    </div>
+    @if ($peer_review_completed)
         <div class="modal fade" id="norubric-modal" role="dialog">
             <div class="modal-dialog">
 
@@ -342,6 +370,9 @@
                 </div>
             </div>
         </div>
+    @else
+        <div id="not-completed-view">Peer Review for this Assignment has not been completed. Please select a different assignment to view.</div>
+    @endif
 
     <script>
         @if ($message)
@@ -525,6 +556,28 @@ $(document).ready(function(){
             $('#comment-header').hide();
             $('.comment-togglers').hide();
             $('#toggle-comments').html("Show Comments");
+        }
+    }
+
+    // function to switch between assignments
+    function switch_assignment(id) {
+        // only switch if the clicked course id is different from current
+        if (id !== {{$assignment_id}}) {
+            var has_rubric = $('#' + id).attr("data-rubric_status");
+            var course_id = '{{$course_id}}';
+            
+            // displaying different modal for has rubric / no rubric
+            if (has_rubric) {
+                $("#loadscreen").fadeIn(function(){
+                    $("#main").fadeOut();
+                });
+                window.location.href= "/course/" + course_id + "/assignment/" + id;
+            } else {
+                var canvas_url = '{{$canvas_url}}';
+            
+                $("#speedgrader-link").attr("href", canvas_url + "/courses/" + course_id + "/gradebook/speed_grader?assignment_id=" + id);
+                $("#norubric-modal").modal('toggle');
+            }
         }
     }
 
