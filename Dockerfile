@@ -1,11 +1,11 @@
-FROM php:7.3-cli as phpbuild
+FROM php:8.0-cli as phpbuild
 ADD web /var/www/html
 COPY --from=composer /usr/bin/composer /usr/bin/composer
 WORKDIR /var/www/html
 RUN composer install
 
 
-FROM php:7.3-apache
+FROM php:8.0-apache
 # enable rewrite for Laravel pretty URLs
 RUN a2enmod rewrite
 # change apache webroot from / to /public/
