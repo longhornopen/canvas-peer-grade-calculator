@@ -3,7 +3,7 @@ A tool for calculating grades from Canvas peer reviews.  For a Canvas peer-grade
 
 ## Installation
 * Clone or download this repo.
-* Install PHP (7.3 or higher)
+* Install PHP (check composer.json for minimum PHP version)
 * Install Composer (https://getcomposer.org)
 * `cd` into the 'web' folder in this repo.
 * `cp .env.example .env` to create a new env file from the provided example.
