@@ -124,7 +124,7 @@ class PeerGradingController extends Controller
             $csv->output('report-' . $assignment_id . '.csv');
         }
     }
-    
+
     /**
      * Retrieve scores for students in course
      */
@@ -145,7 +145,7 @@ class PeerGradingController extends Controller
 
         // peer reviews has not been completed
         if (count($peer_review_scores["score"]) == 0) {
-            
+
             return view(
                 'assignment',
                 [
@@ -184,7 +184,7 @@ class PeerGradingController extends Controller
             $table_data = $data['table_data'];
             $total = $data['total'];
             $class_average = $this->get_class_average($table_data);
-            
+
             return view(
                 'assignment',
                 [
@@ -202,7 +202,7 @@ class PeerGradingController extends Controller
             );
         }
 
-        
+
     }
 
     /**
@@ -284,7 +284,7 @@ class PeerGradingController extends Controller
         }
         return $peer_reviews;
     }
-    
+
 
     public function get_peer_review_scores_from_rubric($canvasApi, $course_id, $rubric_id)
     {
@@ -425,27 +425,25 @@ class PeerGradingController extends Controller
     public function import_grades_to_gradebook(Request $request)
     {
         $canvasApi = $this->getCanvasApi();
-        $request_data = $request->all();
-        $course_id = $request_data['courseId'];
-        $assignment_id = $request_data['assignmentId'];
+        $course_id = $request->get('courseId');
+        $assignment_id = $request->get('assignmentId');
         // FIXME this should probably check whether or not things are actually incomplete
-        $points_off_incomplete = 0; // floatval($request_data['pointsOffIncomplete']);
-        $input_data = json_decode($request_data['peerReviewData'], true);
+        $points_off_incomplete = 0; // floatval($request->get('pointsOffIncomplete'));
+        $input_data = json_decode($request->get('peerReviewData'), true);
         $gradebook_data = [];
-        $complete_names = [];
-        $graded_names = [];
+        $ungraded_students = [];
         foreach ($input_data as $data) {
             $student_name = $data[0];
             $student_id = $data[1];
             $assessor_name = $data[2];
             $grade_assigned = $data[3];
             $grade_average = $data[4];
-            $complete_names[] = $student_name;
 
             if (!array_key_exists($student_id, $gradebook_data) && $grade_assigned != '-') {
-                $graded_names[] = $student_name;
                 $grade_average = $grade_average - $points_off_incomplete;
                 $gradebook_data[$student_id] = $grade_average;
+            } else {
+                $ungraded_students[$student_id] = $student_name;
             }
         }
         foreach ($gradebook_data as $key => $value) {
@@ -457,21 +455,14 @@ class PeerGradingController extends Controller
             );
         }
 
-        $names1 = array_diff($complete_names, $graded_names);
-        $names = array_values($names1);
-        $final_names = implode(", ", $names);
-
+        $response = [
+            'status' => 'success',
+            'msg' => 'Grades posted successfully.'
+        ];
         //Message changes if there are incomplete peer reviews.
-        if (count($input_data) !== count($gradebook_data)) {
-            $response = [
-                'status' => 'success',
-                'msg' => 'Grades posted successfully. However, the following students do not have grades: ' . $final_names . "!"
-            ];
-        } elseif (count($input_data) !== count($gradebook_data)) {
-            $response = [
-                'status' => 'success',
-                'msg' => 'Grades posted successfully.'
-            ];
+        if (count($ungraded_students) > 0) {
+            $ungraded_names = implode("; ", $ungraded_students);
+            $response['msg'] .= ' However, the following students do not have grades: ' . $ungraded_names;
         }
         return response()->json($response, 200);
     }
