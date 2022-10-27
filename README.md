@@ -39,6 +39,8 @@ First, you'll need to get a Developer Key in your Canvas installation, so that w
 ## Usage
 When users access the home page, they'll be presented with a list of the classes they're a teacher or TA in, and which are currenly active.  They'll then be able to select an assignment in that class, and start grading.
 
+See [docs/INDEX.md](docs/INDEX.md) for more details and screenshots.
+
 ## Meta
 This is a product of Longhorn Open Ed Tech, a group building open-source education tools housed at the University of Texas at Austin. See our homepage for more info about us and to discuss collaboration possibilities and ideas for new development.
 
