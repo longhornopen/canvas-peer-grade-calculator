@@ -114,11 +114,20 @@ class PeerGradingController extends Controller
             $peer_review_scores = $this->get_peer_review_scores_from_rubric($canvasApi, $course_id, $rubric_id);
             $data = $this->generate_table_data($student_list, $peer_reviews, $peer_review_scores, true);
             $table_data = $data['table_data'];
-            $csv = Writer::createFromFileObject(new SplTempFileObject());
+            $csv = Writer::createFromString();
             $csv_header = ["Student", "ID", "SIS User ID", $assignment_name . "(" . $assignment_id . ")"];
             $csv->insertOne($csv_header);
-            foreach ($table_data as $row_entry) {
-                $csv_row = [$row_entry[0], $row_entry[1], $row_entry[2], $row_entry[3]];
+            $avg_grades = collect();
+            foreach ($table_data as $item) {
+                $student_id = $item[5];
+                $avg_grade = $item[3];
+                $avg_grades[$student_id] = $avg_grade;
+            }
+            foreach ($student_list as $student_id=>$student) {
+                if (!$avg_grades->has($student_id)) {
+                    continue;
+                }
+                $csv_row = [$student['name'], $student_id, $student['login_id'], $avg_grades[$student_id]];
                 $csv->insertOne($csv_row);
             }
             $csv->output('report-' . $assignment_id . '.csv');
