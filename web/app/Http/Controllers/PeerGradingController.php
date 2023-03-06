@@ -12,6 +12,11 @@ use function collect;
 
 class PeerGradingController extends Controller
 {
+    protected function getCanvasApi()
+    {
+        return new CanvasApiClient(env("CANVAS_URL"), Session::get("oauth2_access_token"));
+    }
+
     public function index()
     {
         $canvasApi = $this->getCanvasApi();
@@ -30,11 +35,11 @@ class PeerGradingController extends Controller
         );
     }
 
-    protected function getCanvasApi()
-    {
-        return new CanvasApiClient(env("CANVAS_URL"), Session::get("oauth2_access_token"));
-    }
-
+    /* This isn't an LTI tool, in the sense that we go through the whole LTI-launch process.
+       But teachers sometimes want a link to it in their course for convenience.  LTI is a great
+       way of providing that link, and as a side benefit we also get to shortcut the select-a-course
+       step (since we can get that course ID from the LTI launch data).
+    */
     public function ltiLaunch(Request $request)
     {
         $course_id = $request->get("custom_canvas_course_id");
