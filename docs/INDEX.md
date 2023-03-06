@@ -26,7 +26,7 @@ Select the Assignment from drop-down menu [1] and click 'Begin Review' [2].
 ### View assignment details
 
 On the Assignment details page, you can 'Select a Different Assignment' [1] or change the number of entries to display (10, 25, 50 or 100) for the current assignment [2]. In the upper right are buttons to 'Import Scores to the Gradebook' [3] and/or 'Export Scores to an Excel CSV' [4].
-![Peer Review Grading Tool page displaying Import/Export buttons, Class Avg, and sort features](images/PeerReview_Details.png)
+![Peer Review Grading Tool page displaying Import/Export buttons, Class Avg, and sort features](images/PeerReview_DetailsButtons.png)
 
 You can sort any column by clicking the heading [1] or 'Search' for a particular student by entering their name in the text box [2]. You can click on a student's name to view their assignment submission in SpeedGrader [3].
 ![Sorting and searching assignments](images/PeerReview_Details.png)
