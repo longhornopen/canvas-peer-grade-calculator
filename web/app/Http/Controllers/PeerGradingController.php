@@ -43,7 +43,7 @@ class PeerGradingController extends Controller
     public function ltiLaunch(Request $request)
     {
         $course_id = $request->get("custom_canvas_course_id");
-        return redirect()->route('home', ['course_id' => $course_id]);
+        return redirect('/course/' . $course_id);
     }
 
     protected function getAssignments($course_id)
