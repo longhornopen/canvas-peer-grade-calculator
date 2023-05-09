@@ -52,8 +52,6 @@
         z-index: 1;
     }
 
-    .comment-togglers, #comment-header {display: none;}
-
     .student-login-id, #student-login-id-header {
         display: none;
     }
@@ -136,7 +134,7 @@
         display: none;
         text-align: center;
     }
-    
+
     #assignments-dropdown {
         display: flex;
         align-items: center;
@@ -391,10 +389,20 @@ $(document).ready(function(){
                 ]
             });
 
+            var comments_column = dataTable.column(5);
+            comments_column.visible(false);
+
             $('.dataTables_filter').parent()[0].classList.remove("col-sm-6");
             $('.dataTables_filter').parent()[0].classList.add("col-sm-12");
 
-            $('#toggle-comments').click(showComments);
+            $('#toggle-comments').click(function() {
+                if (comments_column.visible()) {
+                    $('#toggle-comments').html('Hide Comments');
+                } else {
+                    $('#toggle-comments').html('Show Comments');
+                }
+                comments_column.visible(!comments_column.visible());
+            });
 
             $(window).resize(function() {
                 $winSize = $(window).width();
@@ -545,27 +553,13 @@ $(document).ready(function(){
 
 });
 
-    function showComments() {
-        /** Generate modal for comment */
-        if ($("#comment-header").css("display") === "none") {
-            $('#comment-header').show();
-            $('.comment-togglers').show();
-            $('#toggle-comments').html("Hide Comments");
-        }
-        else {
-            $('#comment-header').hide();
-            $('.comment-togglers').hide();
-            $('#toggle-comments').html("Show Comments");
-        }
-    }
-
     // function to switch between assignments
     function switch_assignment(id) {
         // only switch if the clicked course id is different from current
         if (id !== {{$assignment_id}}) {
             var has_rubric = $('#' + id).attr("data-rubric_status");
             var course_id = '{{$course_id}}';
-            
+
             // displaying different modal for has rubric / no rubric
             if (has_rubric) {
                 $("#loadscreen").fadeIn(function(){
@@ -574,7 +568,7 @@ $(document).ready(function(){
                 window.location.href= "/course/" + course_id + "/assignment/" + id;
             } else {
                 var canvas_url = '{{$canvas_url}}';
-            
+
                 $("#speedgrader-link").attr("href", canvas_url + "/courses/" + course_id + "/gradebook/speed_grader?assignment_id=" + id);
                 $("#norubric-modal").modal('toggle');
             }
