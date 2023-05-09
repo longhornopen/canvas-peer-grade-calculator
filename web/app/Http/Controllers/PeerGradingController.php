@@ -23,6 +23,7 @@ class PeerGradingController extends Controller
         $teacher_courses = $canvasApi->get('/users/self/courses?enrollment_type=teacher&enrollment_state=active?per_page=100');
         $ta_courses = $canvasApi->get('/users/self/courses?enrollment_type=ta&enrollment_state=active?per_page=100');
         $courses = array_merge($teacher_courses, $ta_courses);
+        Session::forget('section_id');
         usort($courses, function ($c1, $c2) {
             return strcasecmp($c2->created_at, $c1->created_at);
         });
@@ -74,6 +75,32 @@ class PeerGradingController extends Controller
                 'assignments' => $valid_assignments
             ]
         );
+    }
+
+    public function sectionHome($course_id)
+    {
+        $canvasApi = $this->getCanvasApi();
+        $course = $canvasApi->get('/courses/' . $course_id);
+        $sections = $canvasApi->get('/courses/' . $course_id . '/sections?per_page=100');
+        if (count($sections) <= 1) {
+            return redirect('/course/' . $course_id);
+        }
+        return view(
+            'section_home',
+            [
+                'course' => $course,
+                'sections' => $sections
+            ]
+        );
+    }
+
+    public function postSectionHome(Request $request, $course_id) {
+        if (!$request->has('section_id')) {
+            Session::forget('section_id');
+        } else {
+            Session::put('section_id', $request->get('section_id'));
+        }
+        return redirect('/course/' . $course_id);
     }
 
     public function exportScores($course_id, $assignment_id)
@@ -236,7 +263,7 @@ class PeerGradingController extends Controller
 
     protected function get_student_list($canvasApi, $course_id)
     {
-        $students = $canvasApi->get('/courses/' . $course_id . '/students?per_page=1000');
+        $students = $canvasApi->get('/courses/' . $course_id . '/search_users?enrollment_type=student&per_page=1000');
         $student_list = [];
         foreach ($students as $student) {
             if (!isset($student->login_id)) {
@@ -253,11 +280,15 @@ class PeerGradingController extends Controller
     protected function get_peer_reviews($canvasApi, $course_id, $assignment_id)
     {
         ini_set('memory_limit', '1024M');
+        $api_context = '/courses/' . $course_id;
+        if (Session::has('section_id')) {
+            $api_context = '/sections/' . Session::get('section_id');
+        }
         $data = $canvasApi->get(
-            '/courses/' . $course_id . '/assignments/' . $assignment_id . '/peer_reviews?per_page=1000'
+            $api_context . '/assignments/' . $assignment_id . '/peer_reviews?per_page=1000'
         );
         $submissions = $canvasApi->get(
-            '/courses/' . $course_id . '/assignments/' . $assignment_id . '/submissions?include=submission_comments&per_page=1000'
+            $api_context . '/assignments/' . $assignment_id . '/submissions?include=submission_comments&per_page=1000'
         );
         $peer_reviews = [];
         $submission_scores = [];

@@ -21,6 +21,8 @@ Route::get('/oauth_logout', [CanvasOAuthController::class, 'getLogout']);
 
 Route::middleware(['oauth'])->group(function() {
     Route::get('/', [PeerGradingController::class, 'index']);
+    Route::get('/course/{course_id}/section_select', [PeerGradingController::class, 'sectionHome']);
+    Route::post('/course/{course_id}/section_select', [PeerGradingController::class, 'postSectionHome']);
     Route::get('/course/{course_id}', [PeerGradingController::class, 'courseHome']);
     Route::get('/course/{course_id}/assignment/{assignment_id}', [PeerGradingController::class, 'assignmentHome']);
     Route::get('/course/{course_id}/assignment/{assignment_id}/export_gradebook', [PeerGradingController::class, 'gradebookExportScores']);

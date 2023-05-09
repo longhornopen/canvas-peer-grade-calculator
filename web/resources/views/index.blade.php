@@ -6,7 +6,7 @@
     </p>
     <ul>
         @foreach ($courses as $course)
-            <li><a href="/course/{{$course->id}}">{{$course->name}} ({{$course->course_code}})</a></li>
+            <li><a href="/course/{{$course->id}}/section_select">{{$course->name}} ({{$course->course_code}})</a></li>
         @endforeach
     </ul>
 @endsection
