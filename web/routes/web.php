@@ -29,3 +29,4 @@ Route::middleware(['oauth'])->group(function() {
 });
 
 Route::post('/lti_launch', [PeerGradingController::class, 'ltiLaunch']);
+Route::get('/lti_xml', [PeerGradingController::class, 'getLTIXML']);
