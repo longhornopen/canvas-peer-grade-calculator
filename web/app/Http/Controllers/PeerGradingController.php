@@ -453,7 +453,7 @@ class PeerGradingController extends Controller
       <lticm:options name="course_navigation">
         <lticm:property name="url">$app_url/lti_launch</lticm:property>
         <lticm:property name="text">Canvas Peer Review Grading</lticm:property>
-        <lticm:property name="visibility">public</lticm:property>
+        <lticm:property name="visibility">admins</lticm:property>
         <lticm:property name="default">enabled</lticm:property>
         <lticm:property name="enabled">true</lticm:property>
         <lticm:property name="windowTarget">_blank</lticm:property>
