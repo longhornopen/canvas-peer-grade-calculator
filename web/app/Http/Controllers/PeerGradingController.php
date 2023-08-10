@@ -431,7 +431,8 @@ class PeerGradingController extends Controller
     }
 
     public function getLTIXML() {
-        $app_url = env('APP_URL');
+        $app_url = config('app.url');
+        $app_name = config('app.name');
         return response(<<<EOXML
 <?xml version="1.0" encoding="UTF-8"?>
 <cartridge_basiclti_link xmlns="http://www.imsglobal.org/xsd/imslticc_v1p0"
@@ -443,7 +444,7 @@ class PeerGradingController extends Controller
     http://www.imsglobal.org/xsd/imsbasiclti_v1p0 http://www.imsglobal.org/xsd/lti/ltiv1p0/imsbasiclti_v1p0.xsd
     http://www.imsglobal.org/xsd/imslticm_v1p0 http://www.imsglobal.org/xsd/lti/ltiv1p0/imslticm_v1p0.xsd
     http://www.imsglobal.org/xsd/imslticp_v1p0 http://www.imsglobal.org/xsd/lti/ltiv1p0/imslticp_v1p0.xsd">
-    <blti:title>Canvas Peer Review Grading</blti:title>
+    <blti:title>$app_name</blti:title>
     <blti:description>View peer grades and comments, identify outliers, and manage scores.</blti:description>
     <blti:icon>$app_url/images/icon.png</blti:icon>
     <blti:launch_url>$app_url/lti_launch</blti:launch_url>
@@ -452,7 +453,7 @@ class PeerGradingController extends Controller
       <lticm:property name="privacy_level">public</lticm:property>
       <lticm:options name="course_navigation">
         <lticm:property name="url">$app_url/lti_launch</lticm:property>
-        <lticm:property name="text">Canvas Peer Review Grading</lticm:property>
+        <lticm:property name="text">$app_name</lticm:property>
         <lticm:property name="visibility">admins</lticm:property>
         <lticm:property name="default">enabled</lticm:property>
         <lticm:property name="enabled">true</lticm:property>
