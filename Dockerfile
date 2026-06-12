@@ -4,7 +4,7 @@ WORKDIR /var/www/html
 RUN composer install
 
 
-FROM php:8.2-apache
+FROM php:8.4-apache
 # enable rewrite for Laravel pretty URLs
 RUN a2enmod rewrite
 # change apache webroot from / to /public/
